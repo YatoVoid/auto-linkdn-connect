@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import queue
+import sys
 import threading
 import time
 import tkinter as tk
@@ -360,5 +361,11 @@ class App:
 
 
 def main() -> None:
+    if "--self-test" in sys.argv:
+        from .selftest import run
+
+        index = sys.argv.index("--self-test")
+        report = sys.argv[index + 1] if index + 1 < len(sys.argv) else None
+        sys.exit(run(report))
     enable_dpi_awareness()
     App().run()

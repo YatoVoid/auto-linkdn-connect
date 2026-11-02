@@ -8,7 +8,16 @@ The recording is the real app running against a local demo page, not LinkedIn. [
 
 It reads pixels and moves the mouse, so it works with any browser and needs no login, token or extension.
 
-## Install
+## Windows download
+
+Get `auto-linkdn-connect.exe` from the [latest release](../../releases/latest). It needs no Python and no install: run it.
+
+- Windows SmartScreen may say the app is unrecognized because the file is not code signed. Choose **More info**, then **Run anyway**.
+- Some antivirus programs flag any program that clicks and reads the keyboard. If yours does, run from source below instead.
+- The single file unpacks itself on every start, so the window takes a few seconds to appear.
+- `auto-linkdn-connect.exe --self-test report.txt` checks the install without opening the window.
+
+## Install from source
 
 You need Python 3.9 or newer with Tk. It is tested on 3.14.
 
