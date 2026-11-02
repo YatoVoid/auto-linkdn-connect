@@ -20,6 +20,7 @@ class Settings:
     monitor: int = 1
     connect_image: str = ""
     send_image: str = ""
+    more_image: str = ""
 
     def normalized(self) -> "Settings":
         s = Settings(**asdict(self))

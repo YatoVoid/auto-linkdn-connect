@@ -53,6 +53,7 @@ class App:
         self.v_monitor = tk.StringVar(value=str(saved.monitor))
         self.v_connect = tk.StringVar(value=saved.connect_image)
         self.v_send = tk.StringVar(value=saved.send_image)
+        self.v_more = tk.StringVar(value=saved.more_image)
         self.v_status = tk.StringVar(value="Ready")
         self.v_count = tk.StringVar(value="0 sent")
         self.v_button = tk.StringVar()
@@ -118,6 +119,7 @@ class App:
         ttk.Spinbox(self.more, from_=1, to=8, width=6, textvariable=self.v_monitor).grid(row=1, column=1, sticky="e")
         self._image_row(self.more, 2, "Connect image", self.v_connect)
         self._image_row(self.more, 3, "Send image", self.v_send)
+        self._image_row(self.more, 4, "More results image", self.v_more)
 
         self.log = tk.Text(outer, height=8, width=10, state="disabled", wrap="word", relief="flat", background="#f4f4f4")
         self.log.grid(row=4, column=0, sticky="ew", padx=14, pady=(12, 0))
@@ -193,6 +195,7 @@ class App:
                 monitor=int(self.v_monitor.get()),
                 connect_image=self.v_connect.get(),
                 send_image=self.v_send.get(),
+                more_image=self.v_more.get(),
             )
         except ValueError as exc:
             raise ValueError("Settings need whole numbers where a count is expected.") from exc
@@ -200,13 +203,16 @@ class App:
             raise ValueError("The longest pause must not be shorter than the shortest.")
         return raw.normalized()
 
-    def _templates(self, s: Settings) -> tuple[Template, Template]:
+    def _templates(self, s: Settings) -> tuple[Template, Template, Template]:
         connect, send = default_templates()
+        more = default_show_more()
         if s.connect_image:
             connect = Template.from_file(s.connect_image)
         if s.send_image:
             send = Template.from_file(s.send_image)
-        return connect, send
+        if s.more_image:
+            more = Template.from_file(s.more_image, label_only=True)
+        return connect, send, more
 
     def toggle(self) -> None:
         if self.state == "idle":
@@ -291,13 +297,13 @@ class App:
                 s,
                 screen,
                 pointer,
-                *templates,
+                *templates[:2],
                 self.stop_event,
                 Callbacks(
                     log=lambda text: self.events.put(("log", text)),
                     progress=lambda n: self.events.put(("count", n)),
                 ),
-                show_more=default_show_more(),
+                show_more=templates[2],
             )
             if test_only:
                 for line in engine.detect_once():

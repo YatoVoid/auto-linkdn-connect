@@ -18,9 +18,10 @@ def test_normalized_clamps_values():
 
 def test_save_and_load_round_trip(tmp_path):
     path = tmp_path / "s.json"
-    settings.save(settings.Settings(max_invites=12, hotkey="F9"), path)
+    settings.save(settings.Settings(max_invites=12, hotkey="F9", more_image="/x/more.png"), path)
     loaded = settings.load(path)
     assert loaded.max_invites == 12 and loaded.hotkey == "F9"
+    assert loaded.more_image == "/x/more.png"
 
 
 def test_load_survives_missing_and_corrupt_files(tmp_path):
