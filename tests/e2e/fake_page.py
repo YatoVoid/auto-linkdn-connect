@@ -1,4 +1,4 @@
-"""A scrolling page of Connect buttons for end-to-end runs on a real screen.
+"""A scrolling people grid with Connect buttons, for end-to-end runs and the demo recording.
 
     python fake_page.py --geometry 1280x800+0+0 --result out.json
 
@@ -12,9 +12,11 @@ from pathlib import Path
 
 ASSETS = Path(__file__).resolve().parents[2] / "src" / "linkdn_connect" / "assets"
 KINDS = ["normal", "normal", "pending", "normal", "direct", "normal", "stuck", "normal", "normal", "normal", "pending", "normal"]
-COLUMN_X = (60, 520)
-ROW_H = 240
-TOP = 120
+ROLES = ["Product Designer", "Software Engineer", "Recruiter", "Data Analyst", "Studio Producer", "QA Lead",
+         "Art Director", "Engineering Manager", "Technical Artist", "Sound Designer", "Game Designer", "Animator"]
+CARD_W, GAP, BTN_W, BTN_H = 286, 40, 246, 42
+TOP, ROW_H = 190, 260
+BG, CARD_BG = "#f3f2ef", "white"
 
 
 def main() -> None:
@@ -30,15 +32,17 @@ def main() -> None:
 
     root = tk.Tk()
     root.geometry(args.geometry)
-    root.title("fake page")
+    root.title("demo page")
     if args.cover:
         root.overrideredirect(True)
         root.attributes("-topmost", True)
     width, height = (int(v) for v in args.geometry.split("+")[0].split("x"))
     rows = (len(kinds) + 1) // 2
-    page_h = TOP + rows * row_h + 300
+    page_h = TOP + rows * row_h + 200
+    left = (width - (2 * CARD_W + GAP)) // 2
+    columns = (left + 20, left + CARD_W + GAP + 20)
 
-    canvas = tk.Canvas(root, width=width, height=height, bg="white", highlightthickness=0, yscrollincrement=100,
+    canvas = tk.Canvas(root, width=width, height=height, bg=BG, highlightthickness=0, yscrollincrement=100,
                        scrollregion=(0, 0, width, page_h))
     canvas.pack(fill="both", expand=True)
     connect_img = tk.PhotoImage(file=str(ASSETS / "connect_button.png"))
@@ -46,13 +50,20 @@ def main() -> None:
 
     buttons = []
     for i, kind in enumerate(kinds):
-        x, y = COLUMN_X[i % 2], TOP + (i // 2) * row_h
-        canvas.create_rectangle(x - 20, y - 60, x + 266, y + 100, outline="#dddddd")
-        item = {"i": i, "kind": kind, "x": x, "y": y, "state": "pending" if kind == "pending" else "connect", "clicks": 0}
-        buttons.append(item)
+        x, y = columns[i % 2], TOP + (i // 2) * row_h
+        cx = x + BTN_W // 2
+        canvas.create_rectangle(x - 20, y - 150, x - 20 + CARD_W, y + 62, fill=CARD_BG, outline="#e0dfdc")
+        canvas.create_rectangle(x - 19, y - 149, x - 20 + CARD_W, y - 100, fill="#a0b4b7", outline="")
+        canvas.create_oval(cx - 30, y - 128, cx + 30, y - 68, fill="#c7cdd1", outline="white", width=3)
+        canvas.create_text(cx, y - 52, text=f"Sample Person {i + 1}", fill="#191919", font=("Helvetica", 13, "bold"))
+        canvas.create_text(cx, y - 28, text=ROLES[i % len(ROLES)], fill="#666666", font=("Helvetica", 10))
+        buttons.append({"i": i, "kind": kind, "x": x, "y": y, "state": "pending" if kind == "pending" else "connect", "clicks": 0})
+
+    canvas.create_rectangle(0, 0, width, 56, fill="white", outline="#e0dfdc", tags="bar")
+    bar_text = canvas.create_text(width // 2, 28, text="Demo page, not LinkedIn", fill="#444444", font=("Helvetica", 13, "bold"))
 
     modal = {"open": None, "ids": []}
-    overlay = {"ids": []}
+    order = []
 
     def draw_buttons():
         for b in buttons:
@@ -62,8 +73,16 @@ def main() -> None:
             if b["state"] == "connect":
                 b["id"] = canvas.create_image(b["x"], b["y"], anchor="nw", image=connect_img)
             else:
-                b["id"] = canvas.create_rectangle(b["x"], b["y"], b["x"] + 246, b["y"] + 42, outline="#555555", width=2)
-                b["id2"] = canvas.create_text(b["x"] + 123, b["y"] + 21, text="Pending", fill="#444444", font=("Helvetica", 14, "bold"))
+                b["id"] = canvas.create_rectangle(b["x"], b["y"], b["x"] + BTN_W, b["y"] + BTN_H, outline="#555555", width=2)
+                b["id2"] = canvas.create_text(b["x"] + BTN_W // 2, b["y"] + BTN_H // 2, text="Pending", fill="#444444", font=("Helvetica", 14, "bold"))
+        pin_bar()
+
+    def pin_bar():
+        view_y = canvas.canvasy(0)
+        canvas.coords("bar", 0, view_y, width, view_y + 56)
+        canvas.coords(bar_text, width // 2, view_y + 28)
+        canvas.tag_raise("bar")
+        canvas.tag_raise(bar_text)
 
     def save():
         Path(args.result).write_text(json.dumps({
@@ -71,8 +90,6 @@ def main() -> None:
             "clicks": {b["i"]: b["clicks"] for b in buttons},
             "order": order,
         }))
-
-    order = []
 
     def close_modal():
         for item in modal["ids"]:
@@ -83,16 +100,18 @@ def main() -> None:
     def open_modal(button):
         view_y = canvas.canvasy(0)
         modal["open"] = button
-        dim = canvas.create_rectangle(0, view_y, width, view_y + height, fill="#555555", stipple="gray50", outline="")
-        box = canvas.create_rectangle(250, view_y + 200, 710, view_y + 460, fill="white", outline="#999999")
+        bx, by = width // 2 - 230, view_y + height // 2 - 130
+        dim = canvas.create_rectangle(0, view_y, width, view_y + height, fill="#000000", stipple="gray12", outline="")
+        box = canvas.create_rectangle(bx, by, bx + 460, by + 260, fill="white", outline="#999999")
         modal["ids"] = [dim, box]
         if button["kind"] == "stuck":
-            modal["ids"].append(canvas.create_text(480, view_y + 320, text="Weekly invitation limit reached", font=("Helvetica", 16)))
+            modal["ids"].append(canvas.create_text(bx + 230, by + 130, text="Weekly invitation limit reached", font=("Helvetica", 16)))
             modal["send_box"] = None
         else:
-            modal["ids"].append(canvas.create_rectangle(280, view_y + 400, 440, view_y + 440, outline="#0a66c2", width=2))
-            modal["ids"].append(canvas.create_text(360, view_y + 420, text="Add a note", fill="#0a66c2", font=("Helvetica", 13, "bold")))
-            sx, sy = 470, view_y + 395
+            modal["ids"].append(canvas.create_text(bx + 230, by + 60, text="Add a note to your invitation?", fill="#191919", font=("Helvetica", 15, "bold")))
+            modal["ids"].append(canvas.create_rectangle(bx + 30, by + 200, bx + 190, by + 240, outline="#0a66c2", width=2))
+            modal["ids"].append(canvas.create_text(bx + 110, by + 220, text="Add a note", fill="#0a66c2", font=("Helvetica", 13, "bold")))
+            sx, sy = bx + 220, by + 195
             modal["ids"].append(canvas.create_image(sx, sy, anchor="nw", image=send_img))
             modal["send_box"] = (sx, sy, sx + send_img.width(), sy + send_img.height())
 
@@ -107,7 +126,7 @@ def main() -> None:
                 save()
             return
         for b in buttons:
-            if b["state"] == "connect" and b["x"] <= x <= b["x"] + 246 and b["y"] <= y <= b["y"] + 42:
+            if b["state"] == "connect" and b["x"] <= x <= b["x"] + BTN_W and b["y"] <= y <= b["y"] + BTN_H:
                 b["clicks"] += 1
                 order.append(b["i"])
                 if b["kind"] == "direct":
@@ -120,7 +139,8 @@ def main() -> None:
 
     def scroll(direction):
         if not modal["open"]:
-            canvas.yview_scroll(direction * 1, "units")
+            canvas.yview_scroll(direction, "units")
+            pin_bar()
 
     canvas.bind("<Button-1>", on_click)
     root.bind("<Button-4>", lambda e: scroll(-1))

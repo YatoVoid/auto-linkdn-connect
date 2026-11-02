@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import select
 import threading
+import time
 from typing import Callable
 
 from .platform_info import is_wayland
@@ -13,6 +14,22 @@ class HotkeyError(RuntimeError):
     pass
 
 
+class Gate:
+    """Drops repeat triggers. One tap can reach the listener as several key events."""
+
+    def __init__(self, hold: float = 0.35, clock: Callable[[], float] = time.monotonic):
+        self._hold = hold
+        self._clock = clock
+        self._last: float | None = None
+
+    def allow(self) -> bool:
+        now = self._clock()
+        if self._last is not None and now - self._last < self._hold:
+            return False
+        self._last = now
+        return True
+
+
 class PynputHotkey:
     def __init__(self, name: str, callback: Callable[[], None]):
         from pynput import keyboard
@@ -20,12 +37,14 @@ class PynputHotkey:
         self._target = getattr(keyboard.Key, name.lower())
         self._callback = callback
         self._held = False
+        self._gate = Gate()
         self._listener = keyboard.Listener(on_press=self._press, on_release=self._release)
 
     def _press(self, key) -> None:
         if key == self._target and not self._held:
             self._held = True
-            self._callback()
+            if self._gate.allow():
+                self._callback()
 
     def _release(self, key) -> None:
         if key == self._target:
@@ -51,6 +70,7 @@ class EvdevHotkey:
         self._code = e.ecodes["KEY_" + name.upper()]
         self._callback = callback
         self._stop = threading.Event()
+        self._gate = Gate()
         self._devices = []
         for path in evdev.list_devices():
             try:
@@ -76,7 +96,8 @@ class EvdevHotkey:
                 try:
                     for event in device.read():
                         if event.type == e.EV_KEY and event.code == self._code and event.value == 1:
-                            self._callback()
+                            if self._gate.allow():
+                                self._callback()
                 except OSError:
                     devices.remove(device)
 

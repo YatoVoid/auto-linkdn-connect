@@ -2,7 +2,9 @@
 
 Looks at your screen, clicks the first **Connect** button from the top, confirms with **Send without a note**, and repeats. When no Connect button is left on screen it scrolls down and keeps going.
 
-![Window](docs/screenshot.png)
+![The app sending invitations on a demo page](docs/demo.gif)
+
+The recording is the real app running against a local demo page, not LinkedIn. [Full quality video](docs/demo.mp4).
 
 It reads pixels and moves the mouse, so it works with any browser and needs no login, token or extension.
 
@@ -97,7 +99,7 @@ pip install -e ".[dev]"
 pytest
 ```
 
-The tests drive the engine against a simulated page that renders real frames and answers clicks, scrolls and Escape. `tests/e2e/run_x11.py` repeats that against a real X server and needs `Xephyr`. `tests/e2e/run_wayland.py` does the same on a Wayland desktop. It covers the whole screen with a test page and takes over the mouse for about a minute, so run it when you are not using the machine.
+The tests drive the engine against a simulated page that renders real frames and answers clicks, scrolls and Escape. `tests/e2e/run_x11.py` repeats that against a real X server and needs `Xephyr`. `tools/record_demo.py` regenerates the recording above and needs `Xephyr` and `ffmpeg`. `tests/e2e/run_wayland.py` does the same on a Wayland desktop. It covers the whole screen with a test page and takes over the mouse for about a minute, so run it when you are not using the machine.
 
 ## License
 
