@@ -20,6 +20,7 @@ CLOSE_SETTLE = 1.0
 SCROLL_SETTLE = 1.2
 SCROLL_RETRY_WAIT = 1.5
 SCROLL_TRIES = 3
+MORE_SETTLE = 2.5
 MAX_FAIL_STREAK = 4
 STUCK_RADIUS = 20
 HAND_MOVE_LIMIT = 40
@@ -80,12 +81,14 @@ class Engine:
         callbacks: Callbacks | None = None,
         clock=None,
         rng: random.Random | None = None,
+        show_more: Template | None = None,
     ):
         self.s = settings.normalized()
         self.screen = screen
         self.pointer = pointer
         self.connect = connect
         self.send = send
+        self.show_more = show_more
         self.stop = stop
         self.cb = callbacks or Callbacks()
         self.clock = clock or SystemClock(stop)
@@ -96,6 +99,7 @@ class Engine:
         self._scale = 1.0
         self._expected: tuple[int, int] | None = None
         self._stuck: list[tuple[int, int]] = []
+        self._more_stuck: list[tuple[int, int]] = []
 
     def _check(self) -> None:
         if self.stop.is_set():
@@ -170,6 +174,26 @@ class Engine:
         )
         return Outcome.FAILED if still_there else Outcome.SENT
 
+    def _press_show_more(self, frame_image: np.ndarray) -> bool:
+        """Clicks a visible "Show more results" button. False if there is none to press."""
+        if self.show_more is None:
+            return False
+        found = [
+            m
+            for m in self._visible(frame_image, self.show_more)
+            if not any(math.dist(m.center, p) <= STUCK_RADIUS for p in self._more_stuck)
+        ]
+        if not found:
+            return False
+        match = found[0]
+        self.cb.log("Pressing Show more results.")
+        self._click_at(match.center, match)
+        self._wait(MORE_SETTLE)
+        after = self._grab()
+        if any(math.dist(m.center, match.center) <= STUCK_RADIUS for m in self._visible(after.image, self.show_more)):
+            self._more_stuck.append(match.center)
+        return True
+
     def _scroll(self, before: np.ndarray):
         """Scrolls one step and returns the new frame, or None once the page stops moving."""
         h, w = before.shape[:2]
@@ -219,12 +243,17 @@ class Engine:
                     frame = self._grab()
                     continue
 
+                if self._press_show_more(frame.image):
+                    frame = self._grab()
+                    continue
+
                 self.cb.log("No Connect button on screen. Scrolling down.")
                 scrolled = self._scroll(frame.image)
                 if scrolled is None:
                     reason = "Reached the end of the page."
                     break
                 self._stuck.clear()
+                self._more_stuck.clear()
                 frame = scrolled
         except Stopped as stopped:
             reason = stopped.reason
@@ -235,7 +264,10 @@ class Engine:
         frame = self._grab()
         finder = Finder()
         lines = []
-        for label, template in (("Connect", self.connect), ("Send without a note", self.send)):
+        targets = [("Connect", self.connect), ("Send without a note", self.send)]
+        if self.show_more is not None:
+            targets.append(("Show more results", self.show_more))
+        for label, template in targets:
             found = finder.find(frame.image, template, 0.5)
             accepted = [m for m in found if m.score >= self.s.threshold]
             lines.append(f"{label}: {len(accepted)} found")

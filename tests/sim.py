@@ -13,6 +13,8 @@ VIEW_W, VIEW_H = 960, 540
 SCROLL_PER_CLICK = 100
 CONNECT_IMG = cv2.imread(str(ASSETS / "connect_button.png"))
 SEND_IMG = cv2.imread(str(ASSETS / "send_button.png"))
+MORE_IMG = cv2.imread(str(ASSETS / "show_more_button.png"))
+MORE_H, MORE_W = MORE_IMG.shape[:2]
 BTN_H, BTN_W = CONNECT_IMG.shape[:2]
 
 
@@ -37,6 +39,10 @@ class SimWorld:
         self.order: list[Button] = []
         self.escapes = 0
         self.grabs = 0
+        self.more_y: int | None = None
+        self.more_batches: list[tuple[list[Button], int]] = []
+        self.more_clicks = 0
+        self.more_works = True
 
     def render(self) -> np.ndarray:
         img = np.full((VIEW_H, VIEW_W, 3), 255, np.uint8)
@@ -50,6 +56,10 @@ class SimWorld:
             else:
                 cv2.rectangle(img, (b.x, top), (b.x + BTN_W, top + BTN_H), (90, 90, 90), 2)
                 cv2.putText(img, "Pending", (b.x + 80, top + 28), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (60, 60, 60), 2)
+        if self.more_y is not None:
+            top = self.more_y - self.scroll
+            if -MORE_H < top < VIEW_H:
+                self._paste(img, MORE_IMG, (VIEW_W - MORE_W) // 2, top)
         if self.modal:
             img = (img * 0.4).astype(np.uint8)
             cv2.rectangle(img, (250, 150), (710, 390), (255, 255, 255), -1)
@@ -76,6 +86,18 @@ class SimWorld:
                 button.state = "pending"
                 self.modal = None
             return
+        if self.more_y is not None:
+            top = self.more_y - self.scroll
+            left = (VIEW_W - MORE_W) // 2
+            if left <= px < left + MORE_W and top <= py < top + MORE_H:
+                self.more_clicks += 1
+                if self.more_works and self.more_batches:
+                    batch, height = self.more_batches.pop(0)
+                    self.buttons.extend(batch)
+                    self.page_height = height
+                    if not self.more_batches:
+                        self.more_y = None
+                return
         for b in self.buttons:
             if b.state == "connect" and b.contains(px, py, self.scroll):
                 b.clicks += 1

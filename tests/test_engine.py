@@ -6,7 +6,7 @@ import pytest
 
 from linkdn_connect.engine import Callbacks, Engine, screen_changed
 from linkdn_connect.settings import Settings
-from linkdn_connect.vision import default_templates
+from linkdn_connect.vision import default_show_more, default_templates
 from sim import FakeClock, SimPointer, SimScreen, SimWorld, grid
 
 
@@ -29,6 +29,7 @@ def make(templates, buttons, height, scale=1.0, **settings):
         Callbacks(log.append, progress.append),
         clock=FakeClock(stop),
         rng=random.Random(1),
+        show_more=default_show_more(),
     )
     return world, engine, stop, pointer, log, progress
 
@@ -142,3 +143,45 @@ def test_clicks_land_on_high_density_screens(templates, scale):
     engine.run()
     assert engine.sent == 4
     assert not world.remaining()
+
+
+def test_presses_show_more_after_the_last_connect_and_keeps_going(templates):
+    first, height = grid(2)
+    world, engine, *_ = make(templates, first, height + 120)
+    world.more_y = height + 20
+    extra, extra_height = grid(2, first=height + 140)
+    world.more_batches.append((extra, extra_height + 200))
+    reason = engine.run()
+    assert world.more_clicks == 1
+    assert engine.sent == 8
+    assert not world.remaining()
+    assert reason == "Reached the end of the page."
+
+
+def test_show_more_is_not_pressed_while_connect_buttons_remain(templates):
+    buttons, height = grid(1)
+    world, engine, *_ = make(templates, buttons, 540)
+    world.more_y = 400
+    world.more_batches.append(([], 540))
+    engine.run()
+    assert engine.sent == 2
+    assert world.more_clicks == 1
+    assert world.order and all(b.state == "pending" for b in buttons)
+
+
+def test_show_more_that_does_nothing_is_not_pressed_forever(templates):
+    first, height = grid(1)
+    world, engine, *_ = make(templates, first, height + 120)
+    world.more_y = height + 20
+    world.more_batches.append(([], height + 120))
+    world.more_works = False
+    reason = engine.run()
+    assert world.more_clicks == 1
+    assert reason == "Reached the end of the page."
+
+
+def test_detect_once_reports_show_more(templates):
+    buttons, height = grid(1)
+    world, engine, *_ = make(templates, buttons, height)
+    world.more_y = 300
+    assert "Show more results: 1 found" in engine.detect_once()

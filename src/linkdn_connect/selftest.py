@@ -9,10 +9,11 @@ def _core_checks(lines: list[str]) -> bool:
     import cv2
     import numpy as np
 
-    from .vision import ASSETS, Finder, default_templates
+    from .vision import ASSETS, Finder, default_show_more, default_templates
 
     connect, send = default_templates()
-    lines.append(f"templates: ok ({connect.gray.shape}, {send.gray.shape})")
+    more = default_show_more()
+    lines.append(f"templates: ok ({connect.gray.shape}, {send.gray.shape}, {more.gray.shape})")
     page = np.full((400, 700, 3), 255, np.uint8)
     button = cv2.imread(str(ASSETS / "connect_button.png"))
     page[150 : 150 + button.shape[0], 200 : 200 + button.shape[1]] = button

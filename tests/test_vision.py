@@ -105,3 +105,24 @@ def test_template_rejects_blank_and_tiny_images():
 def test_template_from_missing_file(tmp_path):
     with pytest.raises(TemplateError):
         Template.from_file(tmp_path / "nope.png")
+
+
+def test_finds_show_more_results_at_other_zoom_levels():
+    from linkdn_connect.vision import default_show_more
+
+    template = default_show_more()
+    for scale in (0.8, 1.0, 1.1):
+        img = canvas()
+        cx, cy = paste(img, "show_more_button.png", 5, 250, scale)
+        found = Finder().find(img, template, 0.75)
+        assert len(found) == 1
+        assert abs(found[0].center[0] - cx) <= 8 and abs(found[0].center[1] - cy) <= 8
+
+
+def test_show_more_is_not_confused_with_the_other_buttons(templates):
+    from linkdn_connect.vision import default_show_more
+
+    img = canvas()
+    paste(img, "connect_button.png", 100, 100)
+    paste(img, "send_button.png", 400, 300)
+    assert Finder().find(img, default_show_more(), 0.75) == []

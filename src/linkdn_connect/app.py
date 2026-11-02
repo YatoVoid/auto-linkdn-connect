@@ -14,7 +14,7 @@ from .platform_info import enable_dpi_awareness, is_linux
 from .pointer import PointerError, create_pointer
 from .screen import ScreenError, create_screen
 from .settings import Settings
-from .vision import Template, TemplateError, default_templates
+from .vision import Template, TemplateError, default_show_more, default_templates
 
 COUNTDOWN = 3
 SETTLE = 0.8
@@ -297,6 +297,7 @@ class App:
                     log=lambda text: self.events.put(("log", text)),
                     progress=lambda n: self.events.put(("count", n)),
                 ),
+                show_more=default_show_more(),
             )
             if test_only:
                 for line in engine.detect_once():

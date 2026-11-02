@@ -101,11 +101,25 @@ class Template:
         return cls(cv2.cvtColor(core, cv2.COLOR_BGR2GRAY), _signature(core), name)
 
     @classmethod
-    def from_file(cls, path: str | Path) -> "Template":
+    def from_label_image(cls, bgr: np.ndarray, name: str = "template") -> "Template":
+        """For buttons whose border is too faint to detect: the text is the template."""
+        if bgr is None or bgr.ndim != 3 or min(bgr.shape[:2]) < 10:
+            raise TemplateError("image is too small to be a button screenshot")
+        gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+        x, y, w, h = _ink_box(gray)
+        pad = 2
+        y0, y1 = max(0, y - pad), min(bgr.shape[0], y + h + pad)
+        x0, x1 = max(0, x - pad), min(bgr.shape[1], x + w + pad)
+        core = bgr[y0:y1, x0:x1]
+        return cls(cv2.cvtColor(core, cv2.COLOR_BGR2GRAY), _signature(core), name)
+
+    @classmethod
+    def from_file(cls, path: str | Path, label_only: bool = False) -> "Template":
         image = cv2.imread(str(path), cv2.IMREAD_COLOR)
         if image is None:
             raise TemplateError(f"cannot read image: {path}")
-        return cls.from_button_image(image, Path(path).name)
+        build = cls.from_label_image if label_only else cls.from_button_image
+        return build(image, Path(path).name)
 
 
 def default_templates() -> tuple[Template, Template]:
@@ -113,6 +127,10 @@ def default_templates() -> tuple[Template, Template]:
         Template.from_file(ASSETS / "connect_button.png"),
         Template.from_file(ASSETS / "send_button.png"),
     )
+
+
+def default_show_more() -> Template:
+    return Template.from_file(ASSETS / "show_more_button.png", label_only=True)
 
 
 def _resize(gray: np.ndarray, scale: float) -> np.ndarray:

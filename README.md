@@ -92,13 +92,13 @@ The built in images are the light theme buttons in English. For anything else, t
 2. Search it for the Connect label with template matching at many zoom levels, and keep only matches with the same colour as the template, so grey buttons such as Pending are ignored.
 3. Click the first one, reading top to bottom and left to right.
 4. Wait up to 4 seconds for Send without a note and click it. If a different dialog appears, press Escape and skip that button.
-5. With no Connect button left, scroll and look again. If the page stops moving after three tries, it is the end.
+5. With no Connect button on screen, press **Show more results** if it is visible. Otherwise scroll and look again. If the page stops moving after three tries, it is the end.
 
 ## Limits
 
 - LinkedIn's terms forbid automated tools, and an account that sends many invitations can be warned or restricted. LinkedIn also caps weekly invitations and shows a dialog when you reach it. The defaults are cautious. Use it at your own risk.
 - It clicks every Connect button it sees. It does not read names or filter people.
-- It does not press Show more buttons. It only scrolls.
+- It presses **Show more results** and nothing else of that kind. A button it presses that does not go away is left alone until the next scroll.
 - On Wayland it cannot detect that you moved the mouse, so stop it with the key.
 - On Wayland with several monitors, the whole desktop is treated as one screen.
 
