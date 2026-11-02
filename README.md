@@ -55,7 +55,8 @@ Not every system has been run on real hardware:
 |---|---|
 | Linux, X11 | Run end to end in an X server: capture, clicks, scrolling, hotkey. |
 | Linux, Wayland | Capture, pointer placement, clicks, scrolling and key reading checked separately on KDE Plasma. No full run yet. |
-| Windows, macOS | Same libraries as X11, covered by the automated tests, not run on real machines. |
+| Windows | The tests pass on a Windows runner, and the built exe passes its self-test there, including screen capture and mouse setup. Not yet run against a real browser. |
+| macOS | Same libraries as X11, covered by the automated tests, not run on a real machine. |
 
 ## Use
 
